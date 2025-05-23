@@ -16,6 +16,7 @@ books = [
         "title": "Backend разработка на Python",
         "author": "Петя",
     }
+
 ]
 
 # GET запросы
@@ -36,6 +37,7 @@ def get_book(book_id: int):
         if book["id"] == book_id:  # если найдено - круто
             return book
     # не найдено - ошибка
+    # обработка ошибок
     raise HTTPException(status_code=404, detail='Книга не найдена')
 
 # POST запрос
@@ -50,7 +52,8 @@ class NewBook(BaseModel):  # наследуемся от BaseModel
 def create_book(new_book: NewBook):  # функция на добавление книжек
     books.append(
         {
-            "id": len(books) + 1,  # возврат кастомных json данных
+            # возврат кастомных json данных, базовая валидация
+            "id": len(books) + 1,
             "title": new_book.title,
             "author": new_book.author,
         }
@@ -84,3 +87,39 @@ class UserSchema(BaseModel):
 # выводим данные пользователя
 user = UserSchema(**data)
 print(user)
+
+
+# PUT, PATCH запросы
+
+# описание структуры книги
+class BookResponse(BaseModel):
+    id: int
+    title: str
+    author: str
+
+
+@app.put("/books/{book_id}",  tags=["Книги"], summary="Обновление всей книги")
+async def update_book(book_id: int, title: str, author: str):
+    for b in books:
+        if b["id"] == book_id:
+            b.update({"title": title, "author": author})
+            return Response(
+                content='{"success": true, "message": "Книга обновлена"}',
+                media_type="application/json"
+            )
+    raise HTTPException(status_code=404, detail="Книга не найдена")
+
+
+@app.patch("/books/{book_id}", tags=["Книги"], summary="Частичное обновление книги")
+async def partial_update_book(book_id: int, title: str | None = None, author: str | None = None):
+    for b in books:
+        if b["id"] == book_id:
+            if title is not None:
+                b["title"] = title
+            if author is not None:
+                b["author"] = author
+            return Response(
+                content='{"success": true, "message": "Книга частично обновлена", "data": }',
+                media_type="application/json"
+            )
+    raise HTTPException(status_code=404, detail="Книга не найдена")
