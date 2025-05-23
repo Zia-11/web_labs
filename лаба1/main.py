@@ -1,7 +1,7 @@
 #  вызов unicorh:  uvicorn main:app --reload
 
 from fastapi import FastAPI, HTTPException, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, EmailStr
 
 app = FastAPI()  # объект класса FastAPI() созданный внутри файла main
 
@@ -21,6 +21,7 @@ books = [
 # GET запросы
 
 # Декоратор, указывает FastAPI, что функция под ним, отвечает за обработку запросов, поступающих по адресу
+# получение всех книжек
 
 
 @app.get("/books", tags=["Книги"], summary="Получить все книги")
@@ -49,7 +50,7 @@ class NewBook(BaseModel):  # наследуемся от BaseModel
 def create_book(new_book: NewBook):  # функция на добавление книжек
     books.append(
         {
-            "id": len(books) + 1,
+            "id": len(books) + 1,  # возврат кастомных json данных
             "title": new_book.title,
             "author": new_book.author,
         }
@@ -60,3 +61,26 @@ def create_book(new_book: NewBook):  # функция на добавление 
         content='{"success": true, "message": "Книга добавлена"}',
         media_type="application/json"
     )
+
+# валидация данных
+
+
+# входные данные
+data = {
+    "email": "abc@mail.ru",
+    "bio": None,
+    "age": 20
+}
+
+# класс для валидации данных
+
+
+class UserSchema(BaseModel):
+    email: str
+    bio: str | None = Field(max_lenght=1000)
+    age: int = Field(ge=0, le=130)
+
+
+# выводим данные пользователя
+user = UserSchema(**data)
+print(user)
