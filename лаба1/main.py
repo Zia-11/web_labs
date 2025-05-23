@@ -123,3 +123,17 @@ async def partial_update_book(book_id: int, title: str | None = None, author: st
                 media_type="application/json"
             )
     raise HTTPException(status_code=404, detail="Книга не найдена")
+
+# DELETE запрос
+
+
+@app.delete("/books/{book_id}", tags=["Книги"], summary="Удаление книги")
+async def delete_book(book_id: int):
+    for i, book in enumerate(books):
+        if book["id"] == book_id:
+            books.pop(i)
+            return Response(
+                content='{"success": true, "message": "Книга удалена"}',
+                media_type="application/json"
+            )
+    raise HTTPException(status_code=404, detail="Книга не найдена")
