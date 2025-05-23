@@ -10,11 +10,13 @@ books = [
         "id": 1,
         "title": "Асинхронность на Python",
         "author": "Вася",
+        "completed": True
     },
     {
         "id": 2,
         "title": "Backend разработка на Python",
         "author": "Петя",
+        "completed": True
     }
 
 ]
@@ -29,8 +31,26 @@ books = [
 async def read_books():  # вызывается каждый раз когда поступает запрос get
     return books
 
+# фильтрация
+
+
+@app.get("/books/filter", tags=["Книги"], summary="Получение книг с фильтрацией")
+async def filter_books(title: str | None = None, author: str | None = None, completed: bool | None = None):
+    filtered_books = books
+    if title:
+        filtered_books = [
+            book for book in filtered_books if title.lower() in book["title"].lower()]
+    if author:
+        filtered_books = [
+            book for book in filtered_books if author.lower() in book["author"].lower()]
+    if completed is not None:
+        filtered_books = [book for book in filtered_books if book.get(
+            "completed") == completed]
+    return filtered_books
 
 # получение id книжек
+
+
 @app.get("/books/{book_id}", tags=["Книги"], summary="Получить конкретную книжку")
 def get_book(book_id: int):
     for book in books:
@@ -43,7 +63,7 @@ def get_book(book_id: int):
 # POST запрос
 
 
-class NewBook(BaseModel):  # наследуемся от BaseModel
+class NewBook(BaseModel):  # наследуемся от BaseModel (сериализация)
     title: str
     author: str
 
