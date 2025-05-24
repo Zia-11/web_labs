@@ -5,11 +5,13 @@ from pydantic import BaseModel, Field
 from auth import is_authenticated, is_admin_user
 from fastapi.security import OAuth2PasswordBearer
 
-oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="token")  # схема OAuth2 для Swagger UI
+# OAuth2PasswordBearer - схема для отображения поля для введения токена в сваггере
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-app = FastAPI()  # объект класса FastAPI() созданный внутри файла main
+# экземпляр приложения fastapi
+app = FastAPI()
 
+# наша бд
 books = [
     {
         "id": 1,
@@ -25,36 +27,27 @@ books = [
     }
 ]
 
-# GET запросы
-
-# чтение всех книг — доступно авторизованным пользователям
+# get запрос на получение всех книжек
 
 
-@app.get(
-    "/books",
-    tags=["Книги"],
-    summary="Получить все книги",
-)
+@app.get("/books", tags=["Книги"], summary="Получить все книги")
 async def read_books(
-    # проверка токена и прав доступа
+    # только авторизованные
     current_user: dict = Security(is_authenticated),
 ):
     return books
 
-# фильтрация — доступно авторизованным
+# get запрос на получение книжек с фильтрацией
 
 
-@app.get(
-    "/books/filter",
-    tags=["Книги"],
-    summary="Получение книг с фильтрацией",
-)
+@app.get("/books/filter", tags=["Книги"], summary="Получение книг с фильтрацией")
 async def filter_books(
     title: str | None = None,
     author: str | None = None,
     completed: bool | None = None,
     current_user: dict = Security(is_authenticated),
 ):
+    # применяем фильтры
     filtered = books
     if title:
         filtered = [b for b in filtered if title.lower() in b["title"].lower()]
@@ -65,67 +58,57 @@ async def filter_books(
         filtered = [b for b in filtered if b.get("completed") == completed]
     return filtered
 
-# получение конкретной книги — доступно авторизованным
+# get запрос на получение конкретной книжки
 
 
-@app.get(
-    "/books/{book_id}",
-    tags=["Книги"],
-    summary="Получить конкретную книжку",
-)
+@app.get("/books/{book_id}", tags=["Книги"], summary="Получить конкретную книжку")
 async def get_book(
     book_id: int,
     current_user: dict = Security(is_authenticated),
 ):
+    # ищем книжку по айдишнику
     for b in books:
         if b["id"] == book_id:
             return b
+    # если нету - ошибка
     raise HTTPException(status_code=404, detail="Книга не найдена")
 
-# Тестовый эндпоинт для проверки Swagger Authorize
+# модель для валидации данных при создании книжки
 
 
-@app.get(
-    "/auth-test",
-    summary="Проверка отображения поля Authorize",
-)
-async def auth_test(
-    token: str = Security(oauth2_scheme),
-):
-    return {"token": token}
-
-# POST запрос — добавление книги (только админ)
-
-
-class NewBook(BaseModel):  # структура данных для создания книги
+class NewBook(BaseModel):
     title: str
     author: str
 
+# post запрос для добавления книжки
 
-@app.post(
-    "/books",
-    tags=["Книги"],
-    summary="Добавление книжки",
-)
+
+@app.post("/books", tags=["Книги"], summary="Добавление книжки",)
 async def create_book(
     new_book: NewBook,
-    current_user: dict = Security(is_admin_user),  # только админ
+    # только для админа
+    current_user: dict = Security(is_admin_user),
 ):
+    # добавляем новую книжку
     books.append({
         "id": len(books) + 1,
         "title": new_book.title,
         "author": new_book.author,
     })
+    # простой JSON ответ
     return Response(
         content='{"success": true, "message": "Книга добавлена"}',
         media_type="application/json"
     )
 
-# аутентификация — получение токена по login/password
 
-
-@app.post("/token")
-async def login(username: str = Form(...), password: str = Form(...)):
+# post запрос для получения токена
+@app.post("/token", tags=["Авторизация"], summary="Получение токена")
+async def login(
+    username: str = Form(...),
+    password: str = Form(...),
+):
+    # проверка учётных данных
     if username == "admin" and password == "admin":
         return {"access_token": "admin_token", "token_type": "bearer"}
     elif username == "user" and password == "user":
@@ -133,34 +116,17 @@ async def login(username: str = Form(...), password: str = Form(...)):
     else:
         raise HTTPException(status_code=400, detail="Неверные данные")
 
-# валидация данных пользователя — для примера
+# put запрос для обновления всей книжки
 
 
-class UserSchema(BaseModel):
-    email: str
-    bio: str | None = Field(max_length=1000)
-    age: int = Field(ge=0, le=130)
-
-
-# демонстрация работы Pydantic
-user_data = {"email": "abc@mail.ru", "bio": None, "age": 20}
-user = UserSchema(**user_data)
-print(user)
-
-# PUT запрос — обновление всей книги (только админ)
-
-
-@app.put(
-    "/books/{book_id}",
-    tags=["Книги"],
-    summary="Обновление всей книги",
-)
+@app.put("/books/{book_id}", tags=["Книги"], summary="Обновление всей книги")
 async def update_book(
     book_id: int,
     title: str,
     author: str,
     current_user: dict = Security(is_admin_user),
 ):
+    # обновляем все поля сразу
     for b in books:
         if b["id"] == book_id:
             b.update({"title": title, "author": author})
@@ -170,14 +136,10 @@ async def update_book(
             )
     raise HTTPException(status_code=404, detail="Книга не найдена")
 
-# PATCH запрос — частичное обновление книги (только админ)
+# patch запрос на частичное обновление книжки
 
 
-@app.patch(
-    "/books/{book_id}",
-    tags=["Книги"],
-    summary="Частичное обновление книги",
-)
+@app.patch("/books/{book_id}", tags=["Книги"], summary="Частичное обновление книги")
 async def partial_update_book(
     book_id: int,
     title: str | None = None,
@@ -186,6 +148,7 @@ async def partial_update_book(
 ):
     for b in books:
         if b["id"] == book_id:
+            # обновляем только те поля которые переданы
             if title is not None:
                 b["title"] = title
             if author is not None:
@@ -196,18 +159,14 @@ async def partial_update_book(
             )
     raise HTTPException(status_code=404, detail="Книга не найдена")
 
-# DELETE запрос — удаление книги (только админ)
 
-
-@app.delete(
-    "/books/{book_id}",
-    tags=["Книги"],
-    summary="Удаление книги",
-)
+# delete запрос
+@app.delete("/books/{book_id}", tags=["Книги"], summary="Удаление книги")
 async def delete_book(
     book_id: int,
     current_user: dict = Security(is_admin_user),
 ):
+    # удаляем книжку по индексу
     for i, b in enumerate(books):
         if b["id"] == book_id:
             books.pop(i)
@@ -216,3 +175,16 @@ async def delete_book(
                 media_type="application/json"
             )
     raise HTTPException(status_code=404, detail="Книга не найдена")
+
+# пример валидации
+
+
+class UserSchema(BaseModel):
+    email: str
+    bio: str | None = Field(max_length=1000)
+    age: int = Field(ge=0, le=130)
+
+
+user_data = {"email": "abc@mail.ru", "bio": None, "age": 20}
+user = UserSchema(**user_data)
+print(user)
