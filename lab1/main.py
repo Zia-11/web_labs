@@ -27,9 +27,8 @@ books = [
     }
 ]
 
+
 # get запрос на получение всех книжек
-
-
 @app.get("/books", tags=["Книги"], summary="Получить все книги")
 async def read_books(
     # только авторизованные
@@ -37,9 +36,8 @@ async def read_books(
 ):
     return books
 
+
 # get запрос на получение книжек с фильтрацией
-
-
 @app.get("/books/filter", tags=["Книги"], summary="Получение книг с фильтрацией")
 async def filter_books(
     title: str | None = None,
@@ -58,9 +56,8 @@ async def filter_books(
         filtered = [b for b in filtered if b.get("completed") == completed]
     return filtered
 
+
 # get запрос на получение конкретной книжки
-
-
 @app.get("/books/{book_id}", tags=["Книги"], summary="Получить конкретную книжку")
 async def get_book(
     book_id: int,
@@ -73,16 +70,14 @@ async def get_book(
     # если нету - ошибка
     raise HTTPException(status_code=404, detail="Книга не найдена")
 
+
 # модель для валидации данных при создании книжки
-
-
 class NewBook(BaseModel):
     title: str
     author: str
 
+
 # post запрос для добавления книжки
-
-
 @app.post("/books", tags=["Книги"], summary="Добавление книжки",)
 async def create_book(
     new_book: NewBook,
@@ -102,7 +97,7 @@ async def create_book(
     )
 
 
-# post запрос для получения токена
+# post запрос для получения токена (реализация аутентификации)
 @app.post("/token", tags=["Авторизация"], summary="Получение токена")
 async def login(
     username: str = Form(...),
@@ -116,9 +111,8 @@ async def login(
     else:
         raise HTTPException(status_code=400, detail="Неверные данные")
 
+
 # put запрос для обновления всей книжки
-
-
 @app.put("/books/{book_id}", tags=["Книги"], summary="Обновление всей книги")
 async def update_book(
     book_id: int,
@@ -136,9 +130,8 @@ async def update_book(
             )
     raise HTTPException(status_code=404, detail="Книга не найдена")
 
+
 # patch запрос на частичное обновление книжки
-
-
 @app.patch("/books/{book_id}", tags=["Книги"], summary="Частичное обновление книги")
 async def partial_update_book(
     book_id: int,
@@ -176,9 +169,8 @@ async def delete_book(
             )
     raise HTTPException(status_code=404, detail="Книга не найдена")
 
+
 # пример валидации
-
-
 class UserSchema(BaseModel):
     email: str
     bio: str | None = Field(max_length=1000)

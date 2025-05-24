@@ -12,9 +12,8 @@ async def client():
     async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
         yield ac  # возвращаем клиент в тестовые функции
 
+
 # функция для авторизации админа
-
-
 @pytest_asyncio.fixture
 async def admin_auth_headers(client):
     # логинимся под админом
@@ -24,9 +23,8 @@ async def admin_auth_headers(client):
     # вставляем токен в окно авторизации
     return {"Authorization": f"Bearer {token}"}
 
+
 # фунция для авторизации пользователя
-
-
 @pytest_asyncio.fixture
 async def user_auth_headers(client):
     res = await client.post("/token", data={"username": "user", "password": "user"})
@@ -34,19 +32,18 @@ async def user_auth_headers(client):
     token = res.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
+
 # наши тесты
 
+
 # попытка получить книги без авторизации
-
-
 @pytest.mark.asyncio
 async def test_read_books_unauthenticated(client):
     res = await client.get("/books")
     assert res.status_code == 403
 
+
 # получение книг с авторизацией обычного пользователя
-
-
 @pytest.mark.asyncio
 async def test_read_books_authenticated(client, user_auth_headers):
     res = await client.get("/books", headers=user_auth_headers)
@@ -59,9 +56,8 @@ async def test_read_books_authenticated(client, user_auth_headers):
         for b in books
     )
 
+
 # получение книги по  конкретному айдишнику
-
-
 @pytest.mark.asyncio
 async def test_get_book_detail(client, user_auth_headers):
     res = await client.get("/books/1", headers=user_auth_headers)
@@ -70,17 +66,15 @@ async def test_get_book_detail(client, user_auth_headers):
     assert book["id"] == 1
     assert "title" in book and "author" in book
 
+
 # запрашиваем книгу которой нет в базе
-
-
 @pytest.mark.asyncio
 async def test_get_book_not_found(client, user_auth_headers):
     res = await client.get("/books/9999", headers=user_auth_headers)
     assert res.status_code == 404
 
+
 # фильтруем книги по слову Python
-
-
 @pytest.mark.asyncio
 async def test_filter_books(client, user_auth_headers):
     params = {"title": "Python"}
@@ -92,9 +86,8 @@ async def test_filter_books(client, user_auth_headers):
         for b in books
     )
 
+
 # создание книги от лица обычного пользователя
-
-
 @pytest.mark.asyncio
 async def test_create_book_unauthorized(client, user_auth_headers):
     payload = {"title": "Unauthorized", "author": "User"}
@@ -102,9 +95,8 @@ async def test_create_book_unauthorized(client, user_auth_headers):
                             )
     assert res.status_code == 403
 
+
 # создание книги от лица админа
-
-
 @pytest.mark.asyncio
 async def test_create_book_as_admin(client, admin_auth_headers):
     payload = {"title": "New Book", "author": "New Author"}
@@ -114,25 +106,22 @@ async def test_create_book_as_admin(client, admin_auth_headers):
     assert body.get("success") is True
     assert "message" in body
 
+
 # создаем книгу с неполным заполнением полей
-
-
 @pytest.mark.asyncio
 async def test_create_book_validation_error(client, admin_auth_headers):
     res = await client.post("/books", json={"title": "NoAuthor"}, headers=admin_auth_headers)
     assert res.status_code == 422
 
+
 # попытка обновить книгу от имени обычного пользователя
-
-
 @pytest.mark.asyncio
 async def test_update_book_unauthorized(client, user_auth_headers):
     res = await client.put("/books/1", params={"title": "X", "author": "Y"}, headers=user_auth_headers)
     assert res.status_code == 403
 
+
 # проверка обновления данных книги
-
-
 @pytest.mark.asyncio
 async def test_update_book_as_admin(client, admin_auth_headers):
     # создаем книгу от имени админа
@@ -161,17 +150,15 @@ async def test_update_book_as_admin(client, admin_auth_headers):
     assert b2["title"] == "Updated Title"
     assert b2["author"] == "Updated Author"
 
+
 #  проверка обновления книги которой нет
-
-
 @pytest.mark.asyncio
 async def test_update_book_not_found(client, admin_auth_headers):
     res = await client.put("/books/9999", params={"title": "X", "author": "Y"}, headers=admin_auth_headers)
     assert res.status_code == 404
 
+
 # частичное обновление книги
-
-
 @pytest.mark.asyncio
 async def test_partial_update_book_as_admin(client, admin_auth_headers):
     # cоздаём новую книгу
@@ -195,25 +182,22 @@ async def test_partial_update_book_as_admin(client, admin_auth_headers):
     b2 = res2.json()
     assert b2["title"] == "PatchDone"
 
+
 # частичное обновление книги которой нет
-
-
 @pytest.mark.asyncio
 async def test_partial_update_book_not_found(client, admin_auth_headers):
     res = await client.patch("/books/9999", params={"title": "Nope"}, headers=admin_auth_headers)
     assert res.status_code == 404
 
+
 # удаление книги от имени пользователя
-
-
 @pytest.mark.asyncio
 async def test_delete_book_forbidden(client, user_auth_headers):
     res = await client.delete("/books/1", headers=user_auth_headers)
     assert res.status_code == 403
 
+
 # удаление книги от имени админа
-
-
 @pytest.mark.asyncio
 async def test_delete_book_as_admin(client, admin_auth_headers):
     # создаём книгу для удаления

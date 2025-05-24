@@ -10,10 +10,10 @@ users_db = {
     "user_token": {"username": "user", "is_admin": False}
 }
 
+
 # проверка на юзера
-
-
 def get_current_user(
+    # получаем данные пользователя
     credentials: HTTPAuthorizationCredentials = Security(bearer_scheme)
 ):
     # достаем токен
@@ -27,15 +27,13 @@ def get_current_user(
         )
     return user
 
+
 # проверка на авторизованность
-
-
 def is_authenticated(user: dict = Depends(get_current_user)):
     return user
 
+
 # проверка на админа
-
-
 def is_admin_user(user: dict = Depends(get_current_user)):
     # если не админ - доступ запрещен
     if not user.get("is_admin"):
